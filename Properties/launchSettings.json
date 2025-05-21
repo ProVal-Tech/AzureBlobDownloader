@@ -1,0 +1,7 @@
+{
+  "profiles": {
+    "AzureBlobDownloader": {
+      "commandName": "Project"
+    }
+  }
+}
