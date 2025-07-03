@@ -9,7 +9,13 @@ Parser.Default.ParseArguments<Options>(args)
 
         BlobServiceClient client = new(connectionString);
         BlobContainerClient containerClient = client.GetBlobContainerClient(opts.ContainerName);
-        foreach (BlobItem blob in containerClient.GetBlobs(prefix: $"{opts.TargetBlobPath}")) {
+        Azure.Pageable<BlobItem> blobs;
+        if (string.IsNullOrWhiteSpace(opts.TargetBlobPath)) {
+            blobs = containerClient.GetBlobs();
+        } else {
+            blobs = containerClient.GetBlobs(prefix: $"{opts.TargetBlobPath}");
+        }
+        foreach (BlobItem blob in blobs) {
             if (blob.Name.EndsWith('/')) {
                 continue;
             }
@@ -19,7 +25,7 @@ Parser.Default.ParseArguments<Options>(args)
             Directory.CreateDirectory(Path.GetDirectoryName(localFilePath) ?? string.Empty);
             using FileStream downloadStream = File.OpenWrite(localFilePath);
             blobClient.DownloadTo(downloadStream);
-            Console.WriteLine($"Blob '{opts.TargetBlobPath}' downloaded to '{localFilePath}'.");
+            Console.WriteLine($"Blob '{blob.Name}' downloaded to '{localFilePath}'.");
         }
     });
 
@@ -30,8 +36,8 @@ public class Options {
     [Option('c', "containername", Required = true, HelpText = "Blob container name.")]
     public string ContainerName { get; set; } = null!;
 
-    [Option('b', "targetblobpath", Required = true, HelpText = "Target blob directory or file.")]
-    public string TargetBlobPath { get; set; } = null!;
+    [Option('b', "targetblobpath", Required = false, HelpText = "Target blob directory or file.")]
+    public string TargetBlobPath { get; set; } = string.Empty;
 
     [Option('f', "targetfilepath", Required = true, HelpText = "Local directory to save the blobs.")]
     public string TargetFilePath { get; set; } = null!;
